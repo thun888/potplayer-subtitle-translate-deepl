@@ -1,5 +1,5 @@
 /*
-        real time subtitle translate for PotPlayer using DeepL
+        real time subtitle translate for PotPlayer using DeepLX
 */
 
 // void OnInitialize()
@@ -24,9 +24,9 @@ string JsonParse(string json) {
     string ret = "";
 
     if (Reader.parse(json, Root) && Root.isObject()) {
-        JsonValue translation = Root["data"];
-        if(translation.isString()) {
-            ret = translation.asString();
+        JsonValue data = Root["data"];
+        if(data.isString()) {
+            ret = data.asString();
         }
     }
     return ret;
@@ -143,7 +143,7 @@ array<string> LangTable = {
 string UserAgent = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36";
 
 string GetTitle() {
-        return "{$CP950=DeepL 翻譯$}{$CP0=DeepL translate$}";
+        return "{$CP950=DeepLX 翻譯$}{$CP0=DeepLX translate$}";
 }
 
 string GetVersion() {
@@ -151,35 +151,39 @@ string GetVersion() {
 }
 
 string GetDesc() {
-        return "https://www.deepl.com/";
+        return "https://github.com/OwO-Network/DeepLX";
 }
 
 string GetLoginTitle() {
-        return "";
+        return "DeepLX设置";
 }
 
 string GetLoginDesc() {
-        return "";
+        return "设置DeepLX API地址和Token";
 }
 
 string GetUserText() {
-        return "Server URL: ";
+        return "API地址: ";
 }
 
 string GetPasswordText() {
-        return "";
+        return "Token: ";
 }
 
 string server_url;
+string api_token;
 
 string ServerLogin(string User, string Pass) {
         server_url = User;
-        if (server_url.empty()) server_url = "your_server_url";
+        api_token = Pass;
+        if (server_url.empty()) server_url = "https://api.deeplx.org";
         return "200 ok";
 }
 
-void ServerLogout() {
+string ServerLogout() {
         server_url = "";
+        api_token = "";
+        return "200 ok";
 }
 
 array<string> GetSrcLangs() {
@@ -196,10 +200,18 @@ array<string> GetDstLangs() {
 }
 
 string Translate(string Text, string &in SrcLang, string &in DstLang) {
-
-    
-
     string url = server_url;
+    
+    // 去除尾部斜杠
+    if(url.substr(url.length() - 1, 1) == "/") {
+        url = url.substr(0, url.length() - 1);
+    }
+    
+    // 添加token和translate路径
+    if(!api_token.empty()) {
+        url += "/" + api_token;
+    }
+    url += "/translate";
 
     Text.replace("\\","\\\\");
     Text.replace("\"","\\\"");
@@ -209,9 +221,13 @@ string Translate(string Text, string &in SrcLang, string &in DstLang) {
 
     dictionary dict = {
         {'text', Text},
-        {'source_lang', SrcLang},
         {'target_lang', DstLang}
     };
+    
+    // 仅当源语言不为空时添加
+    if(!SrcLang.empty()) {
+        dict['source_lang'] = SrcLang;
+    }
  
     string data = "{";
     data += DictionaryToString(dict);
